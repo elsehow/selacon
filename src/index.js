@@ -1,5 +1,17 @@
 let group = require('lodash.groupby')
 let chunk = require('lodash.chunk')
+let join = require('path').join
+let mkdirp = require('mkdirp')
+
+// map a fn (val, key) over keys in obj
+function map (obj, fn) {
+    return Object.keys(obj)
+        .map(k => fn(obj[k], k))
+}
+
+function identity (x) {
+    return x
+}
 
 function time (story) {
     return new Date(
@@ -18,56 +30,23 @@ function day (story) {
     return format(time(story))
 }
 
-// returns html
 function link (s) {
-
-    function title () {
-        return `
-        <a class="title"
-           href="${s.resolved_url}">
-            ${s.resolved_title}
-        </a>
-        `
-    }
-
-    function excerpt () {
-        return `
-        <span class="excerpt">
-            ${s.excerpt}
-        </span>
-        `
-    }
-
+    let title = s.resolved_title ?
+        s.resolved_title : s.resolved_url
     return `
-    <div class = "link">
-        ${title()}
-        ${excerpt()}
-    </div>
+    [${title}](${s.resolved_url}). ${s.excerpt}
     `
 }
 
+// a post, in markdown
 function post (p) {
-    function daystr () {
-        return `
-        <span class="day">
-            ${p.day}
-        </span>`
-    }
-    return `<div class="post">
-        ${daystr()}
-        ${p.links.map(link).join('')}
-        </div>
-        `
-
+    return `
+    title: ${p.day}
+    date: ${p.day}
+    --------------
+    ${p.links.map(link).join('\n')}
+    `
 }
-
-// map a fn (val, key) over keys in obj
-function map (obj, fn) {
-    return Object.keys(obj)
-        .map(k => fn(obj[k], k))
-}
-
-function identity (x) { return x }
 
 function postList (links, day) {
     return { day: day, links: links }
@@ -84,53 +63,22 @@ function hasLinks (p) {
     return p.links.length
 }
 
-function page (opts) {
-
-    return function (posts, i, list) {
-
-    function newer (msg) {
-        if (i==0)
-            return ``
-        let url = `${i-1}.html`
-        if (i==1)
-            url = 'index.html'
-        return `
-            <a href="${url}">${msg}</a>
-        `
-    }
-
-    function older (msg) {
-        if (i==list.length)
-            return
-        let url = `${i+1}.html`
-        return `
-            <a href="${url}">${msg}</a>
-            `
-    }
-
-    function nav () {
-        return `
-        ${older('Older')}|${newer('Newer')}
-        `
-    }
-
-    return `
-      <html>
-      <head>
-      <link rel="stylesheet"
-            type="text/css"
-            href="${opts.css}"
-      <meta name="viewport"
-            content="width=device-width,
-                     initial-scale=1.0">
-      </head>
-      <div id ="container">
-          ${nav()}
-          ${map(posts, post).join('')}
-          ${nav()}
-      </div>
-      <html>
-    `
+function write (opts) {
+    let stat = require('fs').stat
+    let writeF = require('fs').writeFile
+    return function (p) {
+        let fn = `${p.day.replace(new RegExp('/', 'g'),'-')}.md`
+        let path = join(opts.outdir, fn)
+        // TODO don't ovewrite file
+        stat(path, function (err, res) {
+            if (opts.no_overwrite && res)
+                return
+            writeF(path, post(p), function (err) {
+                if (err) throw err
+                if (opts.debug) console.log("writing", path)
+            })
+        })
+        return
     }
 }
 
@@ -140,25 +88,16 @@ function markupper (api_resp, opts) {
     let stories =
         map(api_resp.list, identity)
     let posts =
-        map(
-            group(stories, day),
+        map(group(stories, day),
             postList)
         .sort(latest)
         .filter(hasLinks)
         .reverse()
-    let pages =
-        chunk(posts,
-              opts.posts_per_page)
-        .map(page(opts))
-    pages.forEach((p,i) => {
-        let fn = `${i}.html`
-        if (i==0)
-            fn = 'index.html'
-        // HACK
-        let write = require('fs').writeFileSync
-        write(fn, p)
+        // .map(post)
+    mkdirp(opts.outdir, function (err) {
+        if (err) throw err
+        posts.forEach(write(opts))
     })
 }
 
 module.exports = markupper
-

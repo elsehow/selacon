@@ -6,6 +6,9 @@ let markupper = require('..')
 opts = {
     css: './theme.css',
     posts_per_page:5,
+    outdir: 'out/',
+    no_overwrite: true,
+    debug: true,
 }
 markupper(pocket_api_resp, opts)
-console.log('wrote html')
+console.log('wrote markdown')
