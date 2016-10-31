@@ -57,28 +57,43 @@ function latest (post1, post2) {
         new Date(post1.day) >=
         new Date(post2.day)
     return later ? 1 : -1
-}
+                                       }
 
 function hasLinks (p) {
     return p.links.length
 }
 
+function slashToDash (str) {
+    return str.replace(
+        new RegExp('/', 'g'),'-')
+}
+
+// returns a function (post)
 function write (opts) {
+
     let stat = require('fs').stat
     let writeF = require('fs').writeFile
-    return function (p) {
-        let fn = `${p.day.replace(new RegExp('/', 'g'),'-')}.md`
-        let path = join(opts.outdir, fn)
-        // TODO don't ovewrite file
+
+    function writePost (p) {
+        writeF(path, post(p), function (err) {
+            if (err) throw err
+            if (opts.debug) console.log("writing", path)
+        })
+        return
+    }
+
+    function checkAndWrite (path, p) {
         stat(path, function (err, res) {
             if (opts.no_overwrite && res)
                 return
-            writeF(path, post(p), function (err) {
-                if (err) throw err
-                if (opts.debug) console.log("writing", path)
-            })
+            return writePost(p)
         })
-        return
+    }
+
+    return function (p) {
+        let fn = `${slashToDash(p.day)}.md`
+        let path = join(opts.outdir, fn)
+        return checkAndWrite(path, p)
     }
 }
 
