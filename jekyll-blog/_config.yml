@@ -1,0 +1,16 @@
+title: selacon
+email: ffff@berkeley.edu
+description: > 
+  Blog by computer and human.
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "http://yourdomain.com" # the base hostname & protocol for your site
+twitter_username: _elsehow
+github_username:  elsehow
+
+# Build settings
+markdown: kramdown
+
+gems: [jekyll-paginate]
+
+paginate: 3
+paginate_path: /page:num

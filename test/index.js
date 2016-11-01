@@ -6,8 +6,8 @@ let markupper = require('..')
 opts = {
     css: './theme.css',
     posts_per_page:5,
-    outdir: 'out/',
-    no_overwrite: true,
+    outdir: 'jekyll-blog/_posts/',
+    no_overwrite: false,
     debug: true,
 }
 

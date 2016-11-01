@@ -21,35 +21,42 @@ function time (story) {
 }
 
 function format (jstime) {
-    return jstime
-        .toLocaleDateString(
-            "en-US")
+    return jstime.getFullYear()
+        + "-" +
+        (jstime.getMonth() + 1)
+        + "-" +
+        jstime.getDate()
 }
 
 function day (story) {
     return format(time(story))
 }
 
-function link (s) {
-    let title = s.resolved_title ?
-        s.resolved_title : s.resolved_url
+function post (links, day) {
+    return { day: day, links: links }
+}
+
+function href (url, txt) {
+  return `<a href="${url}" target="_blank">${txt}</a>`
+}
+
+function linkToStr (l) {
+    let title = l.resolved_title ?
+        l.resolved_title : l.resolved_url
     return `
-    [${title}](${s.resolved_url}). ${s.excerpt}
-    `
+  ${href(l.resolved_url, title)}. ${l.excerpt}
+`
 }
 
 // a post, in markdown
-function post (p) {
-    return `
-    title: ${p.day}
-    date: ${p.day}
-    --------------
-    ${p.links.map(link).join('\n')}
-    `
-}
+function postToStr (p) {
+    return `---
+title: ""
+published: ${p.day}
+---
+${p.links.map(linkToStr).join('\n')}
+`
 
-function postList (links, day) {
-    return { day: day, links: links }
 }
 
 function latest (post1, post2) {
@@ -59,13 +66,8 @@ function latest (post1, post2) {
     return later ? 1 : -1
                                        }
 
-function hasLinks (p) {
-    return p.links.length
-}
-
-function slashToDash (str) {
-    return str.replace(
-        new RegExp('/', 'g'),'-')
+function hasLinks (post) {
+    return post.links.length
 }
 
 // returns a function (post)
@@ -74,8 +76,9 @@ function write (opts) {
     let stat = require('fs').stat
     let writeF = require('fs').writeFile
 
-    function writePost (p) {
-        writeF(path, post(p), function (err) {
+    function writePost (path, p) {
+        let str = postToStr(p)
+        writeF(path, str, function (err) {
             if (err) throw err
             if (opts.debug) console.log("writing", path)
         })
@@ -86,12 +89,12 @@ function write (opts) {
         stat(path, function (err, res) {
             if (opts.no_overwrite && res)
                 return
-            return writePost(p)
+            return writePost(path, p)
         })
     }
 
     return function (p) {
-        let fn = `${slashToDash(p.day)}.md`
+        let fn = `${p.day}-${p.day}.md`
         let path = join(opts.outdir, fn)
         return checkAndWrite(path, p)
     }
@@ -100,15 +103,16 @@ function write (opts) {
 // takes a pocket api response (obj)
 // returns a list of html strings - one per page
 function markupper (api_resp, opts) {
+
     let stories =
         map(api_resp.list, identity)
+
     let posts =
-        map(group(stories, day),
-            postList)
+        map(group(stories, day), post)
         .sort(latest)
         .filter(hasLinks)
         .reverse()
-        // .map(post)
+
     mkdirp(opts.outdir, function (err) {
         if (err) throw err
         posts.forEach(write(opts))
