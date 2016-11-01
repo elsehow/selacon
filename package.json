@@ -11,8 +11,11 @@
     "tape": "^4.5.1"
   },
   "dependencies": {
+    "googleapis": "^14.1.0",
+    "kefir": "^3.6.0",
     "lodash.chunk": "^4.2.0",
     "lodash.groupby": "^4.6.0",
-    "mkdirp": "^0.5.1"
+    "mkdirp": "^0.5.1",
+    "pocket-sdk": "0.0.10"
   }
 }

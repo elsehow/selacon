@@ -2,6 +2,15 @@ let group = require('lodash.groupby')
 let chunk = require('lodash.chunk')
 let join = require('path').join
 let mkdirp = require('mkdirp')
+// returns markdown image
+let search = require('../lib/image-search')
+
+//console.log('imported', mod)
+let keys = require('../keys.json')
+let auth = {
+  cx:keys.cx,
+  key:keys['google-api-key'],
+}
 
 // map a fn (val, key) over keys in obj
 function map (obj, fn) {
@@ -40,25 +49,6 @@ function href (url, txt) {
   return `<a href="${url}" target="_blank">${txt}</a>`
 }
 
-function linkToStr (l) {
-    let title = l.resolved_title ?
-        l.resolved_title : l.resolved_url
-    return `
-  ${href(l.resolved_url, title)}. ${l.excerpt}
-`
-}
-
-// a post, in markdown
-function postToStr (p) {
-    return `---
-title: ""
-published: ${p.day}
----
-${p.links.map(linkToStr).join('\n')}
-`
-
-}
-
 function latest (post1, post2) {
     let later =
         new Date(post1.day) >=
@@ -70,6 +60,48 @@ function hasLinks (post) {
     return post.links.length
 }
 
+let kefir = require('kefir')
+
+function markdownS (should_pull_images) {
+  return function (query) {
+    if (!should_pull_images)
+      return kefir.constant('')
+    return kefir.fromNodeCallback(callback => {
+      search(query, auth, callback)
+    })
+  }
+}
+
+// returns markdown
+function linkToStrS (l) {
+  let title = l.resolved_title ?
+      l.resolved_title : l.resolved_url
+  return `
+${href(l.resolved_url, title)}. ${l.excerpt}
+`
+}
+
+// returns kefir stream of markdown
+function postToStr (p, should_pull_images) {
+
+  let links = p.links.map(linkToStrS)
+
+  let imgSs = p.links
+      .map(l => l.resolved_url)
+      .map(markdownS(should_pull_images))
+
+  return kefir.combine(imgSs, function (...imgs) {
+    let str = `---
+title: ""
+published: ${p.day}
+---
+${links.join('\n')}
+${imgs.join('\n')}
+`
+    return str
+  })
+}
+
 // returns a function (post)
 function write (opts) {
 
@@ -77,12 +109,16 @@ function write (opts) {
     let writeF = require('fs').writeFile
 
     function writePost (path, p) {
-        let str = postToStr(p)
-        writeF(path, str, function (err) {
+      postToStr(p, opts.images)
+        .onValue(str => {
+          console.log('???????????')
+          writeF(path, str, function (err) {
             if (err) throw err
             if (opts.debug) console.log("writing", path)
+          })
         })
-        return
+        .onError(err => console.log('ERR', err))
+      return
     }
 
     function checkAndWrite (path, p) {
