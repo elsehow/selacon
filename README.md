@@ -40,3 +40,13 @@ the compiled static HTML site will be in `jekyll-blog/_site/`. you can `scp` jus
 # license
 
 BSD
+
+# TODO
+
+- better descriptions
+    - first sentence only?
+    - check spam filter?
+    - try to find commentary elsewhere?
+- more intelligent image selections
+  - analyze color pallete?
+  - mturk?
