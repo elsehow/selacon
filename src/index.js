@@ -14,35 +14,35 @@ let auth = {
 
 // map a fn (val, key) over keys in obj
 function map (obj, fn) {
-    return Object.keys(obj)
-        .map(k => fn(obj[k], k))
+  return Object.keys(obj)
+    .map(k => fn(obj[k], k))
 }
 
 function identity (x) {
-    return x
+  return x
 }
 
 function time (story) {
-    return new Date(
-        1000*
-            parseInt(
-                story.time_added))
+  return new Date(
+    1000*
+      parseInt(
+        story.time_added))
 }
 
 function format (jstime) {
-    return jstime.getFullYear()
-        + "-" +
-        (jstime.getMonth() + 1)
-        + "-" +
-        jstime.getDate()
+  return jstime.getFullYear()
+    + "-" +
+    (jstime.getMonth() + 1)
+    + "-" +
+    jstime.getDate()
 }
 
 function day (story) {
-    return format(time(story))
+  return format(time(story))
 }
 
 function post (links, day) {
-    return { day: day, links: links }
+  return { day: day, links: links }
 }
 
 function href (url, txt) {
@@ -50,14 +50,14 @@ function href (url, txt) {
 }
 
 function latest (post1, post2) {
-    let later =
-        new Date(post1.day) >=
-        new Date(post2.day)
-    return later ? 1 : -1
-                                       }
+  let later =
+      new Date(post1.day) >=
+      new Date(post2.day)
+  return later ? 1 : -1
+}
 
 function hasLinks (post) {
-    return post.links.length
+  return post.links.length
 }
 
 let kefir = require('kefir')
@@ -77,8 +77,8 @@ function linkToStrS (l) {
   let title = l.resolved_title ?
       l.resolved_title : l.resolved_url
   return `
-${href(l.resolved_url, title)}. ${l.excerpt}
-`
+  ${href(l.resolved_url, title)}. ${l.excerpt}
+  `
 }
 
 // returns kefir stream of markdown
@@ -105,54 +105,56 @@ ${imgs.join('\n')}
 // returns a function (post)
 function write (opts) {
 
-    let stat = require('fs').stat
-    let writeF = require('fs').writeFile
+  let stat = require('fs').stat
+  let writeF = require('fs').writeFile
 
-    function writePost (path, p) {
-      postToStr(p, opts.images)
-        .onValue(str => {
-          console.log('???????????')
-          writeF(path, str, function (err) {
-            if (err) throw err
-            if (opts.debug) console.log("writing", path)
-          })
+  function writePost (path, p) {
+    postToStr(p, opts.images)
+      .onValue(str => {
+        console.log('???????????')
+        writeF(path, str, function (err) {
+          if (err) throw err
+          if (opts.debug)
+            console.log("writing", path)
         })
-        .onError(err => console.log('ERR', err))
-      return
+      })
+      .onError(err =>
+               console.log('ERR', err))
+    return
     }
 
-    function checkAndWrite (path, p) {
-        stat(path, function (err, res) {
-            if (opts.no_overwrite && res)
-                return
-            return writePost(path, p)
-        })
-    }
+  function checkAndWrite (path, p) {
+    stat(path, function (err, res) {
+      if (opts.no_overwrite && res)
+        return
+      return writePost(path, p)
+    })
+  }
 
-    return function (p) {
-        let fn = `${p.day}-${p.day}.md`
-        let path = join(opts.outdir, fn)
-        return checkAndWrite(path, p)
-    }
+  return function (p) {
+    let fn = `${p.day}-${p.day}.md`
+    let path = join(opts.outdir, fn)
+    return checkAndWrite(path, p)
+  }
 }
 
 // takes a pocket api response (obj)
 // returns a list of html strings - one per page
 function markupper (api_resp, opts) {
 
-    let stories =
-        map(api_resp.list, identity)
+  let stories =
+      map(api_resp.list, identity)
 
-    let posts =
-        map(group(stories, day), post)
-        .sort(latest)
-        .filter(hasLinks)
-        .reverse()
+  let posts =
+      map(group(stories, day), post)
+      .sort(latest)
+      .filter(hasLinks)
+      .reverse()
 
-    mkdirp(opts.outdir, function (err) {
-        if (err) throw err
-        posts.forEach(write(opts))
-    })
+  mkdirp(opts.outdir, function (err) {
+    if (err) throw err
+    posts.forEach(write(opts))
+  })
 }
 
 module.exports = markupper
