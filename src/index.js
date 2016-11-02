@@ -113,7 +113,6 @@ function write (opts) {
   function writePost (path, p) {
     postToStr(p, opts.images)
       .onValue(str => {
-        console.log('???????????')
         writeF(path, str, function (err) {
           if (err) throw err
           if (opts.debug)
