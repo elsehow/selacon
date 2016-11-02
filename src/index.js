@@ -91,6 +91,7 @@ function postToStr (p, should_pull_images) {
       .map(markdownS(should_pull_images))
 
   return kefir.combine(imgSs, function (...imgs) {
+
     let str = `---
 title: ""
 published: ${p.day}
@@ -98,6 +99,7 @@ published: ${p.day}
 ${links.join('\n')}
 ${imgs.join('\n')}
 `
+
     return str
   })
 }
@@ -121,7 +123,7 @@ function write (opts) {
       .onError(err =>
                console.log('ERR', err))
     return
-    }
+  }
 
   function checkAndWrite (path, p) {
     stat(path, function (err, res) {
