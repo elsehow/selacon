@@ -1,106 +1,67 @@
-let group = require('lodash.groupby')
-let chunk = require('lodash.chunk')
+let kefir = require('kefir')
 let join = require('path').join
 let mkdirp = require('mkdirp')
 // returns markdown image
 let search = require('../lib/image-search')
-
-//console.log('imported', mod)
+// returns list of { day, links} from Pocket API response
+let postlist = require('./postlist.js')
+// keys for image search
 let keys = require('../keys.json')
 let auth = {
   cx:keys.cx,
   key:keys['google-api-key'],
 }
 
-// map a fn (val, key) over keys in obj
-function map (obj, fn) {
-  return Object.keys(obj)
-    .map(k => fn(obj[k], k))
-}
-
-function identity (x) {
-  return x
-}
-
-function time (story) {
-  return new Date(
-    1000*
-      parseInt(
-        story.time_added))
-}
-
-function format (jstime) {
-  return jstime.getFullYear()
-    + "-" +
-    (jstime.getMonth() + 1)
-    + "-" +
-    jstime.getDate()
-}
-
-function day (story) {
-  return format(time(story))
-}
-
-function post (links, day) {
-  return { day: day, links: links }
-}
-
 function href (url, txt) {
   return `<a href="${url}" target="_blank">${txt}</a>`
 }
 
-function latest (post1, post2) {
-  let later =
-      new Date(post1.day) >=
-      new Date(post2.day)
-  return later ? 1 : -1
+function link_md (url, title, excerpt, img_md) {
+  return `
+${img_md}
+
+${href(url, title)}. ${excerpt}
+`
 }
 
-function hasLinks (post) {
-  return post.links.length
+function post_md (day, links_md_arr) {
+  return `---
+title: ""
+published: ${day}
+---
+${links_md_arr.join('\n')}
+`
 }
 
-let kefir = require('kefir')
-
-function markdownS (should_pull_images) {
-  return function (query) {
-    if (!should_pull_images)
-      return kefir.constant('')
-    return kefir.fromNodeCallback(callback => {
-      search(query, auth, callback)
-    })
-  }
+function img_mdS (query, pull_images=true) {
+  if (!pull_images)
+    return kefir.constant('')
+  return kefir.fromNodeCallback(callback => {
+    search(query, auth, callback)
+  })
 }
 
 // returns markdown
-function linkToStrS (l) {
-  let title = l.resolved_title ?
-      l.resolved_title : l.resolved_url
-  return `
-  ${href(l.resolved_url, title)}. ${l.excerpt}
-  `
+function linkToStrS (pull_images) {
+
+  return function (l) {
+
+    let title = l.resolved_title ?
+        l.resolved_title : l.resolved_url
+
+    return img_mdS(l.resolved_url, pull_images)
+      .map(img_md => link_md(l.resolved_url,
+                             title,
+                             l.excerpt,
+                             img_md))
+  }
 }
 
 // returns kefir stream of markdown
-function postToStr (p, should_pull_images) {
-
-  let links = p.links.map(linkToStrS)
-
-  let imgSs = p.links
-      .map(l => l.resolved_url)
-      .map(markdownS(should_pull_images))
-
-  return kefir.combine(imgSs, function (...imgs) {
-
-    let str = `---
-title: ""
-published: ${p.day}
----
-${links.join('\n')}
-${imgs.join('\n')}
-`
-
-    return str
+function postToStr (p, pull_images) {
+  let linkSs = p.links.map(linkToStrS(pull_images))
+  return kefir.combine(linkSs, function (...links) {
+    return post_md(p.day, links)
   })
 }
 
@@ -114,8 +75,9 @@ function write (opts) {
     postToStr(p, opts.images)
       .onValue(str => {
         writeF(path, str, function (err) {
-          if (err) throw err
-          if (opts.debug)
+          if (err)
+            throw err
+          else if (opts.debug)
             console.log("writing", path)
         })
       })
@@ -135,7 +97,7 @@ function write (opts) {
   return function (p) {
     let fn = `${p.day}-${p.day}.md`
     let path = join(opts.outdir, fn)
-    return checkAndWrite(path, p)
+   return checkAndWrite(path, p)
   }
 }
 
@@ -143,19 +105,14 @@ function write (opts) {
 // returns a list of html strings - one per page
 function markupper (api_resp, opts) {
 
-  let stories =
-      map(api_resp.list, identity)
+  let posts = postlist(api_resp)
 
-  let posts =
-      map(group(stories, day), post)
-      .sort(latest)
-      .filter(hasLinks)
-      .reverse()
-
+  // write each post to disk (if needed)
   mkdirp(opts.outdir, function (err) {
     if (err) throw err
     posts.forEach(write(opts))
   })
+
 }
 
 module.exports = markupper
