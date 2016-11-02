@@ -18,10 +18,10 @@ finally, make a file called `keys.json` that looks like this:
 
 ```json
 {
-  "cx": [your custom google search ID for image searching - cse.google.com/cse/manage/all],
-  "google-api-key": [your google developer API key],
-  "pocket-api-key": [your pocket API key for getting story links - http://getpocket.com],
-  "pocket-access-token": [your pocket access token ]
+  "cx": "your custom google search ID for image searching - cse.google.com/cse/manage/all",
+  "google-api-key": "your google developer API key",
+  "pocket-api-key": "your pocket API key for getting story links - http://getpocket.com",
+  "pocket-access-token": "your pocket access token"
 }
 ```
 
