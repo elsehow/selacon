@@ -2,8 +2,8 @@
 
   function postToMdS (p, opts) { }
 
-  This method turns each post from data to markdown.
-  It returns a stream
+  This method turns each post {day, links: [] }
+  Into a stream of 1 markdown string.
 
   */
 
