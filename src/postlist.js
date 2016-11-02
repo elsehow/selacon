@@ -61,16 +61,15 @@ function hasLinks (post) {
 }
 
 function postlist (api_resp) {
-  // TODO Berak apart response sorter
-  // that reutns data with a certain format
+
   let links =
       map(api_resp.list, identity)
 
   let posts =
       map(group(links, day), post)
-    .sort(latest)
-    .filter(hasLinks)
-    .reverse()
+      .sort(latest)
+      .filter(hasLinks)
+      .reverse()
 
   return posts
 }

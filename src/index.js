@@ -1,6 +1,8 @@
 let kefir = require('kefir')
 let join = require('path').join
 let mkdirp = require('mkdirp')
+let stat = require('fs').stat
+let writeF = require('fs').writeFile
 // returns markdown image
 let search = require('../lib/image-search')
 // returns list of { day, links} from Pocket API response
@@ -12,6 +14,11 @@ let auth = {
   key:keys['google-api-key'],
 }
 
+/*
+  -----------------------------
+  string templates
+  -----------------------------
+  */
 function href (url, txt) {
   return `<a href="${url}" target="_blank">${txt}</a>`
 }
@@ -32,6 +39,12 @@ published: ${day}
 ${links_md_arr.join('\n')}
 `
 }
+
+/*
+  -----------------------------
+  data marshalling methods
+  -----------------------------
+*/
 
 function img_mdS (query, pull_images=true) {
   if (!pull_images)
@@ -65,54 +78,65 @@ function postToStr (p, pull_images) {
   })
 }
 
-// returns a function (post)
-function write (opts) {
+/*
+  -----------------------------
+  disk-writing methods
+  -----------------------------
+*/
 
-  let stat = require('fs').stat
-  let writeF = require('fs').writeFile
+function writePost (path, p, opts) {
 
-  function writePost (path, p) {
-    postToStr(p, opts.images)
-      .onValue(str => {
-        writeF(path, str, function (err) {
-          if (err)
-            throw err
-          else if (opts.debug)
-            console.log("writing", path)
-        })
-      })
-      .onError(err =>
-               console.log('ERR', err))
-    return
+  function errorCb (err) {
+    console.warn('ERR', err)
   }
 
-  function checkAndWrite (path, p) {
-    stat(path, function (err, res) {
-      if (opts.no_overwrite && res)
-        return
-      return writePost(path, p)
-    })
+  function writeCb (err) {
+    if (err) errorCb(err)
+    else if (opts.debug)
+      console.log("writing", path)
   }
 
-  return function (p) {
-    let fn = `${p.day}-${p.day}.md`
-    let path = join(opts.outdir, fn)
-   return checkAndWrite(path, p)
+  function writeFile (str) {
+    return writeF(path, str, writeCb)
   }
+
+  postToStr(p, opts.images)
+    .onValue(writeFile)
+    .onError(errorCb)
+  return
 }
 
-// takes a pocket api response (obj)
-// returns a list of html strings - one per page
+function checkAndWrite (path, p, opts) {
+  stat(path, function (err, res) {
+    if (opts.no_overwrite && res)
+      return
+    return writePost(path, p, opts)
+  })
+}
+
+// write a post to disk, if we need to
+function write (p, opts) {
+  let fn = `${p.day}-${p.day}.md`
+  let path = join(opts.outdir, fn)
+  return checkAndWrite(path, p, opts)
+}
+
+/*
+  -----------------------------
+  this method is exposed
+
+  takes a pocket api response (obj)
+  returns a list of html strings - one per page
+  -----------------------------
+*/
 function markupper (api_resp, opts) {
-
   let posts = postlist(api_resp)
-
   // write each post to disk (if needed)
   mkdirp(opts.outdir, function (err) {
     if (err) throw err
-    posts.forEach(write(opts))
+    posts.forEach(p =>
+                  write(p, opts))
   })
-
 }
 
 module.exports = markupper
