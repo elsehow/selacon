@@ -8,8 +8,6 @@ let token = keys["pocket-access-token"]
 let markupper = require('..')
 
 opts = {
-  css: './theme.css',
-  posts_per_page:5,
   outdir: 'jekyll-blog/_posts/',
   no_overwrite: false,
   debug: true,

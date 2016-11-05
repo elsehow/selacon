@@ -2,4 +2,4 @@
 
 node cmd.js
 cd jekyll-blog
-jekyll serve --watch
+jekyll build

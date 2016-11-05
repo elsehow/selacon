@@ -2,7 +2,7 @@ let keys = require('./keys.json')
 let getter = require('./lib/pocket-getter')
 let key = keys["pocket-api-key"]
 let token = keys["pocket-access-token"]
-let markupper = require('.')
+let blogger = require('.')
 
 opts = {
   posts_per_page:5,
@@ -14,6 +14,6 @@ opts = {
 
 getter(key, token, function (err, resp) {
   if (err) throw err
-  markupper(resp, opts)
+  blogger(resp, opts)
   console.log('writing markdown...')
 })

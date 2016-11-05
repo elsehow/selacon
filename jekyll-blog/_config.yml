@@ -3,7 +3,7 @@ email: ffff@berkeley.edu
 description: > 
   Blog by computer and human.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://selacon.babiesarepsychic.net" # the base hostname & protocol for your site
+url: "https://selacon.babiesarepsychic.net" # the base hostname & protocol for your site
 twitter_username: _elsehow
 github_username:  elsehow
 

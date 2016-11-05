@@ -8,7 +8,6 @@
   */
 
 let kefir = require('kefir')
-// keys for image search
 let keys = require('../keys.json')
 let auth = {
   cx:keys.cx,
@@ -51,7 +50,7 @@ ${links_md_arr.join('\n')}
 
 // returns stream of markdown strings
 function img_mdS (query, pullImages=false) {
-  if (!pullImages)
+  if (!pullImages || !query)
     return kefir.constant('')
   return kefir.fromNodeCallback(callback => {
     search(query, auth, callback)
